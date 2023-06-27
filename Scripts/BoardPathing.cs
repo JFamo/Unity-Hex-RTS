@@ -141,6 +141,11 @@ public class BoardPathing : MonoBehaviour
             return new Vector2Int[1]{start};
         }
 
+        // Check for solid end and abort
+        if(mainGridController.GetObjectAtPosition(dest).IsSolid()){
+            return new Vector2Int[0];
+        }
+
         // Init open and closed lists as sorted sets with comparator on F
         SortedSet<PathingNode> openList = new SortedSet<PathingNode>(new ByFValueComparator());
         SortedSet<PathingNode> closedList = new SortedSet<PathingNode>(new ByFValueComparator());

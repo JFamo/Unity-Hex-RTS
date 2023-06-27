@@ -39,6 +39,11 @@ public class GridController : MonoBehaviour
     public GameObject friendlyCannon;
     public GameObject friendlyTent;
     public GameObject enemyTent;
+    public GameObject cossackUnit;
+    public GameObject cossackTent;
+
+    public BasicAI basicAIAlpha;
+    public BasicAI basicAIBeta;
 
     private BoardObject nullObject;
     private BoardObject[] grid;
@@ -88,7 +93,7 @@ public class GridController : MonoBehaviour
     }
 
     // Methods to spawn an object at some position
-    public void SpawnAtPosition(GameObject item, int position){
+    public BoardObject SpawnAtPosition(GameObject item, int position){
         GameObject newObject = Instantiate(item);
 
         Vector3 gamePosn = mainLayout.GetPositionForHexFromCoord(IndexToPosition(position));
@@ -98,32 +103,39 @@ public class GridController : MonoBehaviour
         grid[position] = newBoardObject;
         newBoardObject.InitializeBoardObject(this, mainLayout, unitGroundCanvas, unitProgressCanvas);
         newBoardObject.NotifyPositionUpdate(IndexToPosition(position));
+
+        return newBoardObject;
     }
 
-    public void SpawnAtPosition(GameObject item, int x, int y){
-        SpawnAtPosition(item, PositionToIndex(x,y));
+    public BoardObject SpawnAtPosition(GameObject item, int x, int y){
+        return SpawnAtPosition(item, PositionToIndex(x,y));
     }
 
-    public void SpawnAtPosition(GameObject item, Vector2Int posn){
-        SpawnAtPosition(item, posn.x, posn.y);
+    public BoardObject SpawnAtPosition(GameObject item, Vector2Int posn){
+        return SpawnAtPosition(item, posn.x, posn.y);
     }
 
     // Method to spawn in some units for testing
     public void SpawnUnits(){
-        SpawnAtPosition(friendlyUnit, 20, 20);
-        SpawnAtPosition(friendlyUnit, 22, 20);
-        SpawnAtPosition(friendlyUnit, 20, 22);
-        SpawnAtPosition(friendlyTent, 10, 10);
+        basicAIAlpha.InitializeBasicAI(this, mainLayout);
+        basicAIBeta.InitializeBasicAI(this, mainLayout);
+
+        BoardObject userTent = SpawnAtPosition(friendlyTent, 10, 10);
+        SpawnAtPosition(friendlyUnit, 10, 11);
+        SpawnAtPosition(friendlyUnit, 10, 12);
         SpawnAtPosition(friendlyCannon, 11, 10);
         SpawnAtPosition(friendlyCannon, 11, 12);
 
-        SpawnAtPosition(enemyUnit, 35, 35);
-        SpawnAtPosition(enemyUnit, 32, 35);
-        SpawnAtPosition(enemyUnit, 35, 33);
-        SpawnAtPosition(enemyTent, 29, 35);
-        SpawnAtPosition(enemyUnit, 30, 30);
-        SpawnAtPosition(enemyUnit, 30, 31);
-        SpawnAtPosition(enemyTent, 37, 38);
+        basicAIAlpha.RegisterMinion(SpawnAtPosition(enemyUnit, 30, 35));
+        basicAIAlpha.RegisterMinion(SpawnAtPosition(enemyUnit, 31, 35));
+        basicAIAlpha.RegisterMinion(SpawnAtPosition(enemyUnit, 32, 35));
+        basicAIAlpha.RegisterDefense(SpawnAtPosition(enemyTent, 31, 34));
+        basicAIAlpha.RegisterObjective(userTent);
+        
+        basicAIBeta.RegisterMinion(SpawnAtPosition(cossackUnit, 30, 5));
+        basicAIBeta.RegisterMinion(SpawnAtPosition(cossackUnit, 30, 6));
+        basicAIBeta.RegisterDefense(SpawnAtPosition(cossackTent, 31, 6));
+        basicAIBeta.RegisterObjective(userTent);
     }
 
     // Method to randomly spawn specified prefabs throughout

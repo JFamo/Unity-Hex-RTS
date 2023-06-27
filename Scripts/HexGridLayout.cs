@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class HexGridLayout : MonoBehaviour
 {
@@ -320,5 +321,97 @@ public class HexGridLayout : MonoBehaviour
             Debug.LogError("Trying to calculate unsupported flat-topped coordinates!");
             return new Vector2Int(0,0);
         }
+    }
+
+    public List<Vector2Int> GetCircleAroundPoint(Vector2Int center, int radius){
+        List<Vector2Int> pointList = new List<Vector2Int>();
+
+        for(int i = 1; i <= radius; i ++){
+            pointList = pointList.Concat(GetRadialShapeAroundPoint(center, i)).ToList();
+        }
+
+        return pointList;
+    }
+
+    public List<Vector2Int> GetRadialShapeAroundPoint(Vector2Int center, int radius){
+        List<Vector2Int> shapeList = new List<Vector2Int>();
+
+        // Handle single point
+        if(radius <= 1){
+            shapeList.Add(center);
+            return shapeList;
+        }
+
+        int topRightCol, topRow, topLeftCol, botRightCol, botRow, botLeftCol;
+
+        // Calculate top and bottom row
+        botRow = center.y + (radius - 1);
+        topRow = center.y - (radius - 1);
+
+        // Determine if this is a left or right row
+        if(center.y % 2 == 0){ // Right
+            
+            botRightCol = center.x + (int)Mathf.Ceil((radius-1)/2.0f);
+            botLeftCol = center.x - (int)Mathf.Floor((radius-1)/2.0f);
+            topRightCol = center.x + (int)Mathf.Ceil((radius-1)/2.0f);
+            topLeftCol = center.x - (int)Mathf.Floor((radius-1)/2.0f);
+
+        }
+        else{ // Left
+
+            botRightCol = center.x + (int)Mathf.Floor((radius-1)/2.0f);
+            botLeftCol = center.x - (int)Mathf.Ceil((radius-1)/2.0f);
+            topRightCol = center.x + (int)Mathf.Floor((radius-1)/2.0f);
+            topLeftCol = center.x - (int)Mathf.Ceil((radius-1)/2.0f);
+
+        }
+
+        // Add corner spokes
+        shapeList.Add(new Vector2Int(botRightCol, botRow));
+        shapeList.Add(new Vector2Int(topRightCol, topRow));
+        shapeList.Add(new Vector2Int(botLeftCol, botRow));
+        shapeList.Add(new Vector2Int(topLeftCol, topRow));
+
+        // Add direct left/right spokes
+        Vector2Int rightSpokePosition = new Vector2Int(center.x + (radius-1), center.y);
+        Vector2Int leftSpokePosition = new Vector2Int(center.x - (radius-1), center.y);
+        shapeList.Add(rightSpokePosition);
+        shapeList.Add(leftSpokePosition);
+
+        // Add top/bottom edges
+        for(int topBotEdgeIndex = 1; topBotEdgeIndex < topRightCol - topLeftCol; topBotEdgeIndex += 1){
+            shapeList.Add(new Vector2Int(topLeftCol + topBotEdgeIndex, topRow));
+            shapeList.Add(new Vector2Int(botLeftCol + topBotEdgeIndex, botRow)); 
+        }
+
+        // Add top right edges
+        Vector2Int diagonalEdgePosition = GetBottomRightOfPosition(new Vector2Int(topRightCol, topRow));
+        while(diagonalEdgePosition != rightSpokePosition){
+            shapeList.Add(diagonalEdgePosition);
+            diagonalEdgePosition = GetBottomRightOfPosition(diagonalEdgePosition);
+        }
+
+        // Add top left edges
+        diagonalEdgePosition = GetBottomLeftOfPosition(new Vector2Int(topLeftCol, topRow));
+        while(diagonalEdgePosition != leftSpokePosition){
+            shapeList.Add(diagonalEdgePosition);
+            diagonalEdgePosition = GetBottomLeftOfPosition(diagonalEdgePosition);
+        }
+
+        // Add bottom right edges
+        diagonalEdgePosition = GetBottomLeftOfPosition(rightSpokePosition);
+        while(diagonalEdgePosition != (new Vector2Int(botRightCol, botRow))){
+            shapeList.Add(diagonalEdgePosition);
+            diagonalEdgePosition = GetBottomLeftOfPosition(diagonalEdgePosition);
+        }
+
+        // Add bottom left edges
+        diagonalEdgePosition = GetBottomRightOfPosition(leftSpokePosition);
+        while(diagonalEdgePosition != (new Vector2Int(botLeftCol, botRow))){
+            shapeList.Add(diagonalEdgePosition);
+            diagonalEdgePosition = GetBottomRightOfPosition(diagonalEdgePosition);
+        }
+
+        return shapeList;
     }
 }

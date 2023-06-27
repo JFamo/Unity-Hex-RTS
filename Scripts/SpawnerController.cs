@@ -11,6 +11,8 @@ public class SpawnerController : MonoBehaviour
     private HexGridLayout mainGridLayout;
     private BoardObject myBoardObject;
 
+    private List<BasicAI> spawnSubscribers;
+
     private float counter = 0.0f;
 
     private Vector2Int GetPosition(){
@@ -28,23 +30,36 @@ public class SpawnerController : MonoBehaviour
         this.mainGridLayout = mainGridLayout;
         counter = 0.0f;
         this.myBoardObject = boardObject;
+
+        this.spawnSubscribers = new List<BasicAI>();
     }
 
     public void InitializeSpawner(BoardObject boardObject, GridController mainGridController, HexGridLayout mainGridLayout, GameObject spawn){
-        this.mainGridController = mainGridController;
-        this.mainGridLayout = mainGridLayout;
+        InitializeSpawner(boardObject, mainGridController, mainGridLayout);
         this.spawn = spawn;
-        counter = 0.0f;
-        this.myBoardObject = boardObject;
     }
 
     private void AttemptSpawn(){
         foreach(Vector2Int successor in mainGridLayout.SuccessorsFromPosition(GetPosition())){
             if(!mainGridController.GetObjectAtPosition(successor).HasProperty(ObjectProperties.SOLID)){
-                mainGridController.SpawnAtPosition(spawn, successor);
+                NotifySpawnSubscribers(mainGridController.SpawnAtPosition(spawn, successor));
                 return;
             }
         }
+    }
+
+    private void NotifySpawnSubscribers(BoardObject newSpawn){
+        if(newSpawn != null){
+            foreach(BasicAI spawnSubscriber in spawnSubscribers){
+                if(spawnSubscriber != null){
+                    spawnSubscriber.NotifySpawn(newSpawn);
+                }
+            }
+        }
+    }
+
+    public void RegisterSpawnSubscriber(BasicAI subscriber){
+        spawnSubscribers.Add(subscriber);
     }
 
     void Update(){

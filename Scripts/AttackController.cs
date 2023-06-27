@@ -20,6 +20,7 @@ public class AttackController : MonoBehaviour
     private bool engaged = false;
     private float counter;
     private BoardObject target;
+    private Vector2Int targetedPosition;
 
     public void InitializeAttackController(BoardObject boardObject, GridController gridController, HexGridLayout gridLayout, PointerController pointerController, UnitCanvasController unitCanvasController){
         this.myBoardObject = boardObject;
@@ -48,9 +49,11 @@ public class AttackController : MonoBehaviour
         if(nearestOpp.x >= 0 && nearestOpp.y >= 0){
             pointerController.AttemptPointToCoord(nearestOpp);
             target = myGridController.GetObjectAtPosition(nearestOpp);
+            targetedPosition = nearestOpp;
             return true;
         }
         target = null;
+        targetedPosition = new Vector2Int(-1,-1);
         return false;
     }
 
@@ -68,6 +71,7 @@ public class AttackController : MonoBehaviour
     public void SuspendEngage(){
         engaged = false;
         target = null;
+        targetedPosition = new Vector2Int(-1,-1);
         ToggleAttackEffects(false);
     }
 
@@ -79,6 +83,14 @@ public class AttackController : MonoBehaviour
                 ToggleAttackEffects(true);
             }
         }
+    }
+
+    public void TargetExplicitPosition(Vector2Int posn){
+        pointerController.AttemptPointToCoord(posn);
+        target = myGridController.GetObjectAtPosition(posn);
+        targetedPosition = posn;
+        engaged = true;
+        ToggleAttackEffects(true);
     }
 
     private void ReevaluateEngage(){
@@ -95,12 +107,24 @@ public class AttackController : MonoBehaviour
     }
 
     private void ExecuteAttack(){
+        // Check target has not died
         if(target != null){
-            float dmg = this.damageRate;
-            if(RollForCritical()){
-                dmg = dmg * this.critMultiplier;
+            
+            // Check target has not fled
+            if(target.GetPosition() == targetedPosition){
+                float dmg = this.damageRate;
+
+                // Attempt critical hit
+                if(RollForCritical()){
+                    dmg = dmg * this.critMultiplier;
+                }
+
+                // Notify enemy HealthController via enemy BoardObject
+                target.NotifyDamageIncoming(dmg);
             }
-            target.NotifyDamageIncoming(dmg);
+            else{
+                ReevaluateEngage();
+            }
         }
         else{
             ReevaluateEngage();

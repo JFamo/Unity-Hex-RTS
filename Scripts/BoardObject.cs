@@ -24,6 +24,7 @@ public class BoardObject : MonoBehaviour
     private MoverController moverChild;
     private AttackController attackerChild;
     private HealthController healthChild;
+    private SpawnerController spawnerChild;
 
     public void InitializeBoardObject(GridController gc, HexGridLayout hgl, GameObject groundCanvasPrefab, GameObject progressCanvasPrefab){
         mainGridController = gc;
@@ -52,7 +53,7 @@ public class BoardObject : MonoBehaviour
         }
 
         /* Initialize Spawner Controller */
-        SpawnerController spawnerChild = GetComponent<SpawnerController>();
+        spawnerChild = GetComponent<SpawnerController>();
         if(spawnerChild != null){
             spawnerChild.InitializeSpawner(this, mainGridController, mainGrid);
         }
@@ -90,6 +91,8 @@ public class BoardObject : MonoBehaviour
         }
     }
 
+    /* Properties */
+
     public bool IsSolid(){
         return isSolid;
     }
@@ -102,6 +105,13 @@ public class BoardObject : MonoBehaviour
         return isMovable;
     }
 
+    public bool IsEngaged(){
+        if(attackerChild){
+            return attackerChild.GetEngaged(); // I do
+        }
+        return false;
+    }
+
     public bool HasProperty(ObjectProperties prop){
         for(int i = 0; i < properties.Length; i ++){
             if(properties[i] == prop){
@@ -111,14 +121,21 @@ public class BoardObject : MonoBehaviour
         return false;
     }
 
+    public bool HasSpawner(){
+        return spawnerChild != null;
+    }
+
+    public SpawnerController GetSpawner(){
+        return spawnerChild;
+    }
+
     public Vector2Int GetPosition(){
         return myPosition;
     }
 
-    public void NotifyPositionUpdate(Vector2Int newPosn){
-        myPosition = newPosn;
-    }
+    /* Requests */
 
+    // This one is used from the mover&pather to update the transform and boardobject in world
     public bool RequestMoveToPosition(Vector2Int posn){
         if(mainGridController.RequestMoveToPosition(this, posn)){
             myPosition = posn;
@@ -132,13 +149,26 @@ public class BoardObject : MonoBehaviour
         }
     }
 
-    private void UpdateSelectionImage(){
-        if(groundCanvas){
-            Image selectedImage = groundCanvas.GetComponentInChildren<Image>();
-            if(selectedImage){
-                selectedImage.enabled = selected;
-            }
+    // This one is used by scripts to request the beginning of a move order
+    public void RequestScriptedPathToPosition(Vector2Int posn){
+        if(moverChild){
+            moverChild.MoveToPoint(posn);
         }
+        if(attackerChild != null){
+            attackerChild.SuspendEngage();
+        }
+    }
+
+    public void RequestTargetPosition(Vector2Int posn){
+        if(attackerChild != null){
+            attackerChild.TargetExplicitPosition(posn);
+        }
+    }
+
+    /* Notifications */
+
+    public void NotifyPositionUpdate(Vector2Int newPosn){
+        myPosition = newPosn;
     }
 
     public void NotifySelected(){
@@ -175,6 +205,17 @@ public class BoardObject : MonoBehaviour
         healthChild.NotifyTakeDamage(amount);
         if(attackerChild != null){
             attackerChild.TriggerEngage();
+        }
+    }
+
+    /* Updates */
+
+    private void UpdateSelectionImage(){
+        if(groundCanvas){
+            Image selectedImage = groundCanvas.GetComponentInChildren<Image>();
+            if(selectedImage){
+                selectedImage.enabled = selected;
+            }
         }
     }
 }

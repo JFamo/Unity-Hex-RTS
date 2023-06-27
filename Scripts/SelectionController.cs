@@ -85,16 +85,25 @@ public class SelectionController : MonoBehaviour
         }
     }
 
+    private void CommandSelectedObject(BoardObject selectedObject, Vector2Int target_posn){
+        // Priority 1 - Engage if adjacent opp
+        if(mainGrid.SuccessorsFromPosition(selectedObject.GetPosition()).Contains(target_posn)){
+            if(mainGridController.GetObjectAtPosition(target_posn).HasProperty(ObjectProperties.HOSTILE)){
+                selectedObject.RequestTargetPosition(target_posn);
+                return;
+            }
+        }
+        // Priority 2 - Move to position
+        selectedObject.NotifyMoveOrder(target_posn);
+    }
+
     private void HandleRMBDown(){
         //Debug.Log("RMB Down"); // DEBUG
         Vector2Int target_posn = CalculateMousePosition();
         if(mainGrid.ValidatePointInGameGrid(target_posn)){
-            //Debug.Log("RMB Down at valid " + target_posn.x + ", " + target_posn.y); // DEBUG
             foreach(BoardObject selectedObject in selectedObjects){
-                //Debug.Log("Selected obj " + selectedObject.identity); // DEBUG
                 if(selectedObject.IsMovable()){
-                    //Debug.Log("Selected movable obj " + selectedObject.identity); // DEBUG
-                    selectedObject.NotifyMoveOrder(target_posn);
+                    CommandSelectedObject(selectedObject, target_posn);
                 }
             }
         }
